@@ -52,7 +52,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 //Get review by MovieId
-router.get("/Movie/:id", async (req, res, next) => {
+router.get("/Movie/:id", auth, async (req, res, next) => {
   const MovieId = req.params.id;
   console.log(MovieId);
   if (!mongoose.Types.ObjectId.isValid(MovieId)) {

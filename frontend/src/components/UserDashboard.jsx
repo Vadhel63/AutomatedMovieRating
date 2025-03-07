@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, History, Star, Film, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import defaultAvatar from "../assests/s10.jpg";
+import { FaUser, FaSearch, FaSignOutAlt } from "react-icons/fa";
 
 const UserDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,7 +77,11 @@ const UserDashboard = () => {
     ];
     setRecentlyVisited(updatedRecentlyVisited);
   };
-
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    navigate("/", { replace: true });
+  };
   // Handle search functionality
   const handleSearch = async (term) => {
     try {
@@ -214,7 +219,14 @@ const UserDashboard = () => {
                 />
               </div>
             </div>
-
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center text-sm bg-red-600 hover:bg-red-700 py-1 px-3 rounded transition duration-300"
+            >
+              <FaSignOutAlt className="mr-1" />
+              Logout
+            </button>
             <div
               className="cursor-pointer group relative"
               onClick={() => navigate("/profile")}
@@ -389,7 +401,7 @@ const UserDashboard = () => {
                         "/placeholder.svg"
                       }
                       alt={movie.Name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div className="p-4">
@@ -419,7 +431,7 @@ const UserDashboard = () => {
                         onClick={() => {
                           setSelectedMovie(movie);
                           setShowReviews(true);
-                          fetchMovieReviews(movie.id);
+                          fetchMovieReviews(movie._id);
                         }}
                       >
                         View Reviews

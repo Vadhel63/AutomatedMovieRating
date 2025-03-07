@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MovieService from "./MovieService";
-import { Search, Film, Plus, Edit, Trash2, Loader } from "lucide-react";
+import {
+  Search,
+  Film,
+  Plus,
+  Edit,
+  Trash2,
+  Loader,
+  MessageSquare,
+} from "lucide-react";
 
 const MovieHome = () => {
   const [movies, setMovies] = useState([]);
@@ -83,6 +91,10 @@ const MovieHome = () => {
     navigate(`/MovieDetails/${movieId}`); // Navigate to the movie details page
   };
 
+  const handleViewReviews = (movieId, movieName) => {
+    navigate(`/MovieReviews/${movieId}`, { state: { movieName } });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-indigo-900 text-white p-6">
       {/* Header with search */}
@@ -155,13 +167,13 @@ const MovieHome = () => {
                     {movie.Description}
                   </p>
 
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-wrap gap-2 justify-between items-center">
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent card click event
                         handleEditMovie(movie._id);
                       }}
-                      className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 py-1.5 px-4 rounded-lg transition-colors duration-200"
+                      className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 py-1.5 px-3 rounded-lg transition-colors duration-200"
                     >
                       <Edit size={16} />
                       <span>Edit</span>
@@ -171,10 +183,20 @@ const MovieHome = () => {
                         e.stopPropagation(); // Prevent card click event
                         handleDeleteMovie(movie._id);
                       }}
-                      className="flex items-center gap-1 bg-red-600 hover:bg-red-500 py-1.5 px-4 rounded-lg transition-colors duration-200"
+                      className="flex items-center gap-1 bg-red-600 hover:bg-red-500 py-1.5 px-3 rounded-lg transition-colors duration-200"
                     >
                       <Trash2 size={16} />
                       <span>Delete</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click event
+                        handleViewReviews(movie._id, movie.Name);
+                      }}
+                      className="flex items-center gap-1 bg-purple-600 hover:bg-purple-500 py-1.5 px-3 rounded-lg transition-colors duration-200 mt-2 w-full"
+                    >
+                      <MessageSquare size={16} />
+                      <span>View Reviews</span>
                     </button>
                   </div>
                 </div>

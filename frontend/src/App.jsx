@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import MovieDetails from "./Movie/MovieDetails";
 import AdminDashboard from "./components/AdminDashboard";
 import UserDashboard from "./components/UserDashboard";
+import MovieReviews from "./Movie/MovieReviews";
 const App = () => {
   return (
     <Router>
@@ -27,6 +28,7 @@ const App = () => {
           <Route path="/MovieDetails/:id" element={<MovieDetails />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/user-dashboard" element={<UserDashboard />} />
+          <Route path="/MovieReviews/:id" element={<MovieReviews />} />
         </Route>
       </Routes>
     </Router>
