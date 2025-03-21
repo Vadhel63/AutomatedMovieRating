@@ -18,6 +18,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Register />} />
+        {/* <Route path="/admin/approve-producers" element={<ApproveProducers />} />   */}
         <Route element={<ProtectedRoute />}>
           <Route path="/home" element={<Home />} />
           <Route path="/profile" element={<ProfilePage />} />
@@ -29,6 +30,7 @@ const App = () => {
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/user-dashboard" element={<UserDashboard />} />
           <Route path="/MovieReviews/:id" element={<MovieReviews />} />
+          
         </Route>
       </Routes>
     </Router>

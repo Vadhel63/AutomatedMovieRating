@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
+import { Link } from "react-router-dom";
 import {
   Users,
   Activity,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 
 const AdminDashboard = () => {
+  const [pendingProducers, setPendingProducers] = useState([]);
   const [admin, setAdmin] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,18 @@ const AdminDashboard = () => {
 
     fetchData();
   }, [navigate]);
+  useEffect(() => {
+    const fetchPendingProducers = async () => {
+      try {
+        const response = await API.get("/user/pending-producers");
+        setPendingProducers(response.data);
+      } catch (error) {
+        console.error("Error fetching pending producers:", error);
+      }
+    };
+
+    fetchPendingProducers();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -192,14 +206,17 @@ const AdminDashboard = () => {
             </div>
 
             {/* Notifications */}
-            <button className="relative p-2 rounded-full hover:bg-gray-700">
-              <Bell size={20} />
-              {notifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  {notifications}
-                </span>
-              )}
-            </button>
+            <button
+          className="relative p-2 rounded-full hover:bg-gray-700"
+          onClick={() => navigate("/admin/approve-producers")} // Redirect on click
+        >
+          <Bell size={20} />
+          {pendingProducers.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+              {pendingProducers.length}
+            </span>
+          )}
+        </button>
 
             {/* Profile dropdown */}
             <div className="relative">

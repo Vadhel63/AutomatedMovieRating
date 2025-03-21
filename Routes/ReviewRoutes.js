@@ -60,7 +60,7 @@ router.get("/Movie/:id", auth, async (req, res, next) => {
   }
   try {
     const reviews = await Review.find({ Movie: MovieId })
-      .populate("User", "UserName")
+      .populate("User", "UserName ProfileImage")
       .populate("Movie", "Name");
     if (!reviews) {
       return next(new HttpError("No reviews found for this movie.", 404));
@@ -150,5 +150,72 @@ router.delete("/:id", async (req, res, next) => {
     return next(error);
   }
 });
+
+router.post("/:reviewId/react", async (req, res) => {
+  try {
+    const { userId, action } = req.body;
+    const { reviewId } = req.params;
+
+    // ✅ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(reviewId)) {
+      return res.status(400).json({ error: "Invalid review ID" });
+    }
+
+    // ✅ Find review
+    const review = await Review.findById(reviewId);
+    if (!review) return res.status(404).json({ error: "Review not found" });
+
+    // Ensure lists exist
+    review.LikedUsers = review.LikedUsers || [];
+    review.DislikedUsers = review.DislikedUsers || [];
+
+    // Convert ObjectId to string for comparison
+    const hasLiked = review.LikedUsers.map(id => id.toString()).includes(userId);
+    const hasDisliked = review.DislikedUsers.map(id => id.toString()).includes(userId);
+
+    if (action === "like") {
+      if (hasLiked) {
+        review.LikeCount = Math.max(review.LikeCount - 1, 0);
+        review.LikedUsers = review.LikedUsers.filter(id => id.toString() !== userId);
+      } else {
+        if (hasDisliked) {
+          review.DislikeCount = Math.max(review.DislikeCount - 1, 0);
+          review.DislikedUsers = review.DislikedUsers.filter(id => id.toString() !== userId);
+        }
+        review.LikeCount += 1;
+        review.LikedUsers.push(userId);
+      }
+    } else if (action === "dislike") {
+      if (hasDisliked) {
+        review.DislikeCount = Math.max(review.DislikeCount - 1, 0);
+        review.DislikedUsers = review.DislikedUsers.filter(id => id.toString() !== userId);
+      } else {
+        if (hasLiked) {
+          review.LikeCount = Math.max(review.LikeCount - 1, 0);
+          review.LikedUsers = review.LikedUsers.filter(id => id.toString() !== userId);
+        }
+        review.DislikeCount += 1;
+        review.DislikedUsers.push(userId);
+      }
+    }
+
+    // ✅ Save changes
+    await review.save();
+
+    return res.json({
+      success: true,
+      LikeCount: review.LikeCount,
+      DislikeCount: review.DislikeCount,
+    });
+  } catch (error) {
+    console.error("Error updating like/dislike:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+
+
+
 
 module.exports = router;

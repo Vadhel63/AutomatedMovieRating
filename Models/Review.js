@@ -7,7 +7,7 @@ const ReviewSchema = new mongoose.Schema({
   },
   rating: {
     type: Number,
-    Default: 2,
+    default: 2,
   },
   LikeCount: {
     type: Number,
@@ -17,6 +17,8 @@ const ReviewSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  LikedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  DislikedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   User: [
     {
       type: mongoose.Schema.Types.ObjectId,

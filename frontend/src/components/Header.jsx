@@ -68,14 +68,7 @@ const Header = () => {
 
         {/* Search Bar */}
         <div className="relative">
-          <input
-            type="text"
-            placeholder="Search movies..."
-            className="bg-gray-700 text-white p-2 pl-8 rounded-md focus:outline-none"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <FaSearch className="absolute left-2 top-3 text-gray-400" />
+         
         </div>
 
         {/* Profile & Logout Section */}

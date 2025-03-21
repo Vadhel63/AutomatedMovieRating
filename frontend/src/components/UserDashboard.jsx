@@ -21,10 +21,13 @@ const UserDashboard = () => {
   const [showReviews, setShowReviews] = useState(false);
   const [movieReviews, setMovieReviews] = useState([]);
   const [reviewLikes, setReviewLikes] = useState({});
+  const [likedReviews, setLikedReviews] = useState({});
+  const [dislikedReviews,setdislikedReviews]=useState({});
   const [reviewDislikes, setReviewDislikes] = useState({});
   const navigate = useNavigate();
 
   // Fetch user data and token from localStorage or context
+
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     const userData = JSON.parse(localStorage.getItem("user"));
@@ -163,23 +166,55 @@ const UserDashboard = () => {
 
   const handleLikeDislike = async (reviewId, action) => {
     try {
-      // Here you would normally make an API call to update likes/dislikes
-      // For now, we'll just update the UI state
-      if (action === "like") {
-        setReviewLikes({
-          ...reviewLikes,
-          [reviewId]: (reviewLikes[reviewId] || 0) + 1,
-        });
-      } else if (action === "dislike") {
-        setReviewDislikes({
-          ...reviewDislikes,
-          [reviewId]: (reviewDislikes[reviewId] || 0) + 1,
-        });
+      // ✅ Extract `userId` safely
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      const userId = storedUser?.user?._id;
+  
+      console.log("Stored user:", storedUser); // Debugging
+      console.log("Extracted userId:", userId); // Debugging
+  
+      if (!userId) {
+        console.error("User not logged in");
+        return;
+      }
+  
+      const response = await fetch(`http://localhost:5000/review/${reviewId}/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, action }),
+      });
+  
+      if (!response.ok) throw new Error("Failed to update review");
+  
+      const data = await response.json();
+  
+      if (data.success) {
+        // ✅ Ensure state updates correctly
+        setReviewLikes(prev => ({ ...prev, [reviewId]: data.LikeCount }));
+        setReviewDislikes(prev => ({ ...prev, [reviewId]: data.DislikeCount }));
+  
+        setLikedReviews(prev => ({
+          ...prev,
+          [reviewId]: action === "like" ? !prev[reviewId] : false,
+        }));
+  
+        setdislikedReviews(prev => ({
+          ...prev,
+          [reviewId]: action === "dislike" ? !prev[reviewId] : false,
+        }));
       }
     } catch (error) {
       console.error(`Error ${action}ing review:`, error);
     }
   };
+  
+  
+  
+  
+  
+  
+  
+  
 
   // Define filteredMovies here
   const filteredMovies = Array.isArray(movies)
@@ -219,14 +254,7 @@ const UserDashboard = () => {
                 />
               </div>
             </div>
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center text-sm bg-red-600 hover:bg-red-700 py-1 px-3 rounded transition duration-300"
-            >
-              <FaSignOutAlt className="mr-1" />
-              Logout
-            </button>
+           
             <div
               className="cursor-pointer group relative"
               onClick={() => navigate("/profile")}
@@ -242,10 +270,20 @@ const UserDashboard = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
+              
               <div className="hidden group-hover:block absolute right-0 top-12 bg-white text-gray-800 rounded-md shadow-lg p-2">
                 <p className="whitespace-nowrap">Go to Profile</p>
               </div>
+              
             </div>
+             {/* Logout Button */}
+             <button
+              onClick={handleLogout}
+              className="flex items-center text-sm bg-red-600 hover:bg-red-700 py-1 px-3 rounded transition duration-300"
+            >
+              <FaSignOutAlt className="mr-1" />
+              Logout
+            </button>
           </div>
         </div>
       </header>
@@ -551,6 +589,7 @@ const UserDashboard = () => {
             <div className="p-4 overflow-y-auto flex-grow">
               {movieReviews.length > 0 ? (
                 movieReviews.map((review) => (
+                  // console.logs(review)
                   <div
                     key={review._id}
                     className="mb-6 border-b pb-4 last:border-0"
@@ -558,15 +597,16 @@ const UserDashboard = () => {
                     <div className="flex items-start mb-3">
                       <div className="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0 overflow-hidden">
                         <img
-                          src={review.User.ProfileImage || defaultAvatar}
-                          alt={review.User.UserName}
+                          src={review.User[0]?.ProfileImage || defaultAvatar}
+                          alt={review.User[0]?.UserName}
                           className="w-full h-full object-cover"
                         />
+                       
                       </div>
                       <div className="ml-3 flex-1">
                         <div className="flex justify-between items-start">
                           <h4 className="font-medium text-gray-900">
-                            {review.User.UserName}
+                            {review.User[0]?.UserName}
                           </h4>
                           <div className="flex items-center">
                             {[1, 2, 3, 4, 5].map((star) => (
@@ -595,8 +635,10 @@ const UserDashboard = () => {
                       <p className="text-gray-800 mb-3">{review.Description}</p>
 
                       <div className="flex items-center space-x-4 mt-2">
-                        <button
-                          className="flex items-center text-gray-600 hover:text-blue-600 text-sm"
+                        {/* <button
+                          className={`flex items-center text-sm ${
+                            likedReviews[review._id] ? "text-blue-600" : "text-gray-600 hover:text-blue-600"
+                          }`}
                           onClick={() => handleLikeDislike(review._id, "like")}
                         >
                           <svg
@@ -613,34 +655,26 @@ const UserDashboard = () => {
                               d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
                             />
                           </svg>
-                          {reviewLikes[review._id] || review.likeCount || 0}{" "}
-                          Likes
-                        </button>
+                          {reviewLikes[review._id] || review.LikeCount} Likes
+                        </button> */}
                         <button
-                          className="flex items-center text-gray-600 hover:text-red-600 text-sm"
-                          onClick={() =>
-                            handleLikeDislike(review._id, "dislike")
-                          }
+                          className={`flex items-center text-sm ${
+                            likedReviews[review._id] ? "text-blue-600" : "text-gray-600"
+                          }`}
+                          onClick={() => handleLikeDislike(review._id, "like")}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"
-                            />
-                          </svg>
-                          {reviewDislikes[review._id] ||
-                            review.dislikeCount ||
-                            0}{" "}
-                          Dislikes
+                          👍 {reviewLikes[review._id] || review.LikeCount} Likes
                         </button>
+
+                        <button
+                          className={`flex items-center text-sm ${
+                            dislikedReviews[review._id] ? "text-red-600" : "text-gray-600"
+                          }`}
+                          onClick={() => handleLikeDislike(review._id, "dislike")}
+                        >
+                          👎 {reviewDislikes[review._id] || review.DislikeCount} Dislikes
+                        </button>
+
                         <button className="flex items-center text-gray-600 hover:text-purple-600 text-sm">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"

@@ -9,48 +9,105 @@ const mongoose = require("mongoose");
 const { upload } = require("../middleware/Cloudinary");
 
 const { isAdmin } = require("../middleware/auth");
+// router.post("/signup", async (req, res, next) => {
+//   const { UserName, Email, Password, Role } = req.body;
+//   let existingUser;
+
+//   try {
+//     existingUser = await User.findOne({ Email: Email });
+//   } catch (err) {
+//     const error = new HttpError("Signup failed, please try again", 500);
+//     return next(error);
+//   }
+
+//   if (existingUser) {
+//     const error = new HttpError("User is already present", 422);
+//     return next(error);
+//   }
+
+//   const hashedPassword = await bcrypt.hash(Password, 12);
+
+//   const currentTime = new Date();
+
+//   const createdUser = new User({
+//     UserName: UserName,
+//     Email: Email,
+//     Password: hashedPassword,
+//     Role: Role,
+//     createdAt: currentTime,
+//     updatedAt: currentTime,
+//   });
+
+//   try {
+//     await createdUser.save();
+//     const payload = { userId: createdUser._id, Role: createdUser.Role };
+//     const token = jwt.sign(payload, process.env.JWT_SECRET, {
+//       expiresIn: "1h",
+//     });
+//     res.json({ token: token, user: createdUser });
+//   } catch (err) {
+//     console.error("Error saving user:", err); // Log the error for debugging
+//     const error = new HttpError("Signup failed, please try again", 500);
+//     return next(error);
+//   }
+// });
+
 router.post("/signup", async (req, res, next) => {
   const { UserName, Email, Password, Role } = req.body;
-  let existingUser;
 
+  let existingUser;
   try {
     existingUser = await User.findOne({ Email: Email });
   } catch (err) {
-    const error = new HttpError("Signup failed, please try again", 500);
-    return next(error);
+    return next(new HttpError("Signup failed, please try again", 500));
   }
 
   if (existingUser) {
-    const error = new HttpError("User is already present", 422);
-    return next(error);
+    return next(new HttpError("User is already present", 422));
   }
 
   const hashedPassword = await bcrypt.hash(Password, 12);
-
-  const currentTime = new Date();
+  const status = Role === "Producer" ? "Pending" : "Accepted"; // Only Producers require admin approval
 
   const createdUser = new User({
-    UserName: UserName,
-    Email: Email,
+    UserName,
+    Email,
     Password: hashedPassword,
-    Role: Role,
-    createdAt: currentTime,
-    updatedAt: currentTime,
+    Role,
+    Status: status,
   });
 
   try {
     await createdUser.save();
-    const payload = { userId: createdUser._id, Role: createdUser.Role };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-    res.json({ token: token, user: createdUser });
+    res.status(201).json({ message: "Signup successful. Waiting for admin approval if Producer." });
   } catch (err) {
-    console.error("Error saving user:", err); // Log the error for debugging
-    const error = new HttpError("Signup failed, please try again", 500);
-    return next(error);
+    return next(new HttpError("Signup failed, please try again", 500));
   }
 });
+
+router.get("/pending-producers", async (req, res, next) => {
+  try {
+    const pendingProducers = await User.find({ Role: "Producer", Status: "Pending" });
+    res.json(pendingProducers);
+  } catch (err) {
+    return next(new HttpError("Failed to fetch pending producers", 500));
+  }
+});
+
+router.patch("/update-producer/:id", async (req, res, next) => {
+  const { id } = req.params;
+  const { action } = req.body; // "Accept" or "Reject"
+
+  try {
+    const updatedStatus = action === "Accept" ? "Accepted" : "Rejected";
+    await User.findByIdAndUpdate(id, { Status: updatedStatus }, { new: true });
+    res.json({ message: `Producer ${updatedStatus}` });
+  } catch (err) {
+    return next(new HttpError("Failed to update producer status", 500));
+  }
+});
+
+
 router.post("/login", async (req, res, next) => {
   const { Email, Password } = req.body;
   const identifiedUser = await User.findOne({ Email: Email });

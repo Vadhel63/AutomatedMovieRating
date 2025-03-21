@@ -27,7 +27,7 @@ const MovieReviews = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-
+        console.log(response.data.reviews);
         setReviews(response.data.reviews || []);
         setLoading(false);
       } catch (err) {
@@ -131,16 +131,16 @@ const MovieReviews = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-indigo-300">
-                        {review.User?.username || "Anonymous User"}
+                        {review.User[0]?.UserName || "Anonymous User"}
                       </h3>
                       <span className="text-sm text-gray-400">
-                        {formatDate(review.createdAt)}
+                        {formatDate(review.updatedAt)}
                       </span>
                     </div>
                   </div>
-                  <div>{renderStars(review.Description)}</div>
+                  <div>{(review.Description)}</div>
                 </div>
-                <p className="text-gray-300">{review.Comment}</p>
+                {/* <p className="text-gray-300">{review.Comment}</p> */}
               </div>
             ))}
           </div>
