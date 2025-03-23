@@ -75,12 +75,18 @@ router.get("/search", auth, async (req, res, next) => {
 
   try {
     const movies = await Movie.find({
-      $or: [
-        { Name: { $regex: term, $options: "i" } },
-        { Type: { $regex: term, $options: "i" } },
+      $and: [
+        {
+          $or: [
+            { Name: { $regex: term, $options: "i" } },
+            { Type: { $regex: term, $options: "i" } },
+          ],
+        },
+        req.userData.role === "Producer"
+          ? { Producer: req.userData.userId }
+          : {}, // Restrict to producer's movies if user is a producer
       ],
     }).populate("Producer", "UserName Email");
-
     console.log("Movies found:", movies);
     res.json({ movies });
   } catch (err) {

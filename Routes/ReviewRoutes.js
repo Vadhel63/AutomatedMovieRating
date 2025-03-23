@@ -4,10 +4,14 @@ const router = express.Router();
 const Review = require("../Models/Review");
 const HttpError = require("../Models/http-errors");
 const auth = require("../middleware/auth");
+const axios = require("axios");
 
-// Create a new review
 router.post("/", async (req, res, next) => {
   const { Description, User, Movie } = req.body;
+
+  if (!Description) {
+    return next(new HttpError("Review description is required.", 400));
+  }
 
   if (
     !mongoose.Types.ObjectId.isValid(User) ||
@@ -16,18 +20,48 @@ router.post("/", async (req, res, next) => {
     return next(new HttpError("Invalid User or Movie ID format.", 400));
   }
 
-  const newReview = new Review({ Description, User, Movie });
-
   try {
+    // 🔥 Debug API Request
+    console.log("📡 Sending request to API...");
+    console.log("Request Body:", { review: Description });
+
+    const response = await axios.post(
+      "https://Milan63-lstm-api.hf.space/predict",
+      { review: Description }
+    );
+
+    console.log("✅ API Response:", response.data);
+
+    if (!response.data || typeof response.data.predicted_rating !== "number") {
+      throw new Error("Failed to get a valid prediction.");
+    }
+
+    const predictedRating = response.data.predicted_rating; // Floating value
+
+    // 🔥 Save review with floating rating
+    const newReview = new Review({
+      Description,
+      User,
+      Movie,
+      rating: predictedRating, // Keep it as a floating number
+    });
+
     await newReview.save();
+
     return res
       .status(201)
       .json({ message: "Review created successfully", review: newReview });
   } catch (err) {
-    console.error("Error saving review:", err);
+    console.error("❌ Error processing review:", err);
 
-    if (err.name === "ValidationError") {
-      return next(new HttpError(`Validation error: ${err.message}`, 400));
+    if (err.response) {
+      console.error("API Error Details:", err.response.data);
+      return next(
+        new HttpError(
+          `Prediction API Error: ${err.response.data.error || "Unknown error"}`,
+          500
+        )
+      );
     }
 
     return next(
@@ -170,17 +204,25 @@ router.post("/:reviewId/react", async (req, res) => {
     review.DislikedUsers = review.DislikedUsers || [];
 
     // Convert ObjectId to string for comparison
-    const hasLiked = review.LikedUsers.map(id => id.toString()).includes(userId);
-    const hasDisliked = review.DislikedUsers.map(id => id.toString()).includes(userId);
+    const hasLiked = review.LikedUsers.map((id) => id.toString()).includes(
+      userId
+    );
+    const hasDisliked = review.DislikedUsers.map((id) =>
+      id.toString()
+    ).includes(userId);
 
     if (action === "like") {
       if (hasLiked) {
         review.LikeCount = Math.max(review.LikeCount - 1, 0);
-        review.LikedUsers = review.LikedUsers.filter(id => id.toString() !== userId);
+        review.LikedUsers = review.LikedUsers.filter(
+          (id) => id.toString() !== userId
+        );
       } else {
         if (hasDisliked) {
           review.DislikeCount = Math.max(review.DislikeCount - 1, 0);
-          review.DislikedUsers = review.DislikedUsers.filter(id => id.toString() !== userId);
+          review.DislikedUsers = review.DislikedUsers.filter(
+            (id) => id.toString() !== userId
+          );
         }
         review.LikeCount += 1;
         review.LikedUsers.push(userId);
@@ -188,11 +230,15 @@ router.post("/:reviewId/react", async (req, res) => {
     } else if (action === "dislike") {
       if (hasDisliked) {
         review.DislikeCount = Math.max(review.DislikeCount - 1, 0);
-        review.DislikedUsers = review.DislikedUsers.filter(id => id.toString() !== userId);
+        review.DislikedUsers = review.DislikedUsers.filter(
+          (id) => id.toString() !== userId
+        );
       } else {
         if (hasLiked) {
           review.LikeCount = Math.max(review.LikeCount - 1, 0);
-          review.LikedUsers = review.LikedUsers.filter(id => id.toString() !== userId);
+          review.LikedUsers = review.LikedUsers.filter(
+            (id) => id.toString() !== userId
+          );
         }
         review.DislikeCount += 1;
         review.DislikedUsers.push(userId);
@@ -212,10 +258,5 @@ router.post("/:reviewId/react", async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
-
-
-
 
 module.exports = router;

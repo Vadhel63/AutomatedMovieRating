@@ -22,7 +22,7 @@ const UserDashboard = () => {
   const [movieReviews, setMovieReviews] = useState([]);
   const [reviewLikes, setReviewLikes] = useState({});
   const [likedReviews, setLikedReviews] = useState({});
-  const [dislikedReviews,setdislikedReviews]=useState({});
+  const [dislikedReviews, setdislikedReviews] = useState({});
   const [reviewDislikes, setReviewDislikes] = useState({});
   const navigate = useNavigate();
 
@@ -67,9 +67,9 @@ const UserDashboard = () => {
       }
     };
 
-    if (authToken) {
-      fetchMovies();
-    }
+    // if (authToken) {
+    fetchMovies();
+    // }
   }, [authToken]);
 
   // Handle movie click to track recently visited movies
@@ -133,6 +133,11 @@ const UserDashboard = () => {
   };
 
   const submitReview = async () => {
+    if (!selectedMovie || !user?.user?._id || !authToken) {
+      console.error("Missing required data to submit review.");
+      return;
+    }
+
     try {
       const response = await fetch("http://localhost:5000/review", {
         method: "POST",
@@ -147,21 +152,25 @@ const UserDashboard = () => {
           Movie: selectedMovie._id,
         }),
       });
-      console.log(user);
+
+      const data = await response.json(); // Parse response
+
       if (response.ok) {
-        console.log("Review submitted successfully");
-        fetchMovieReviews(selectedMovie._id); // Refresh reviews after submission
+        console.log("Review submitted successfully:", data);
+        fetchMovieReviews(selectedMovie._id); // Refresh reviews
+        setShowReviewModal(false);
+        setReviewText("");
+        setReviewRating(5);
+        setSelectedMovie(null); // Reset selection after successful submission
       } else {
-        console.error("Failed to submit review");
+        console.error(
+          "Failed to submit review:",
+          data.message || response.statusText
+        );
       }
     } catch (error) {
       console.error("Error submitting review:", error);
     }
-
-    setShowReviewModal(false);
-    setReviewText("");
-    setReviewRating(5);
-    setSelectedMovie(null);
   };
 
   const handleLikeDislike = async (reviewId, action) => {
@@ -169,36 +178,42 @@ const UserDashboard = () => {
       // ✅ Extract `userId` safely
       const storedUser = JSON.parse(localStorage.getItem("user"));
       const userId = storedUser?.user?._id;
-  
+
       console.log("Stored user:", storedUser); // Debugging
       console.log("Extracted userId:", userId); // Debugging
-  
+
       if (!userId) {
         console.error("User not logged in");
         return;
       }
-  
-      const response = await fetch(`http://localhost:5000/review/${reviewId}/react`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, action }),
-      });
-  
+
+      const response = await fetch(
+        `http://localhost:5000/review/${reviewId}/react`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, action }),
+        }
+      );
+
       if (!response.ok) throw new Error("Failed to update review");
-  
+
       const data = await response.json();
-  
+
       if (data.success) {
         // ✅ Ensure state updates correctly
-        setReviewLikes(prev => ({ ...prev, [reviewId]: data.LikeCount }));
-        setReviewDislikes(prev => ({ ...prev, [reviewId]: data.DislikeCount }));
-  
-        setLikedReviews(prev => ({
+        setReviewLikes((prev) => ({ ...prev, [reviewId]: data.LikeCount }));
+        setReviewDislikes((prev) => ({
+          ...prev,
+          [reviewId]: data.DislikeCount,
+        }));
+
+        setLikedReviews((prev) => ({
           ...prev,
           [reviewId]: action === "like" ? !prev[reviewId] : false,
         }));
-  
-        setdislikedReviews(prev => ({
+
+        setdislikedReviews((prev) => ({
           ...prev,
           [reviewId]: action === "dislike" ? !prev[reviewId] : false,
         }));
@@ -207,14 +222,6 @@ const UserDashboard = () => {
       console.error(`Error ${action}ing review:`, error);
     }
   };
-  
-  
-  
-  
-  
-  
-  
-  
 
   // Define filteredMovies here
   const filteredMovies = Array.isArray(movies)
@@ -254,7 +261,7 @@ const UserDashboard = () => {
                 />
               </div>
             </div>
-           
+
             <div
               className="cursor-pointer group relative"
               onClick={() => navigate("/profile")}
@@ -270,14 +277,13 @@ const UserDashboard = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              
+
               <div className="hidden group-hover:block absolute right-0 top-12 bg-white text-gray-800 rounded-md shadow-lg p-2">
                 <p className="whitespace-nowrap">Go to Profile</p>
               </div>
-              
             </div>
-             {/* Logout Button */}
-             <button
+            {/* Logout Button */}
+            <button
               onClick={handleLogout}
               className="flex items-center text-sm bg-red-600 hover:bg-red-700 py-1 px-3 rounded transition duration-300"
             >
@@ -601,7 +607,6 @@ const UserDashboard = () => {
                           alt={review.User[0]?.UserName}
                           className="w-full h-full object-cover"
                         />
-                       
                       </div>
                       <div className="ml-3 flex-1">
                         <div className="flex justify-between items-start">
@@ -659,7 +664,9 @@ const UserDashboard = () => {
                         </button> */}
                         <button
                           className={`flex items-center text-sm ${
-                            likedReviews[review._id] ? "text-blue-600" : "text-gray-600"
+                            likedReviews[review._id]
+                              ? "text-blue-600"
+                              : "text-gray-600"
                           }`}
                           onClick={() => handleLikeDislike(review._id, "like")}
                         >
@@ -668,11 +675,16 @@ const UserDashboard = () => {
 
                         <button
                           className={`flex items-center text-sm ${
-                            dislikedReviews[review._id] ? "text-red-600" : "text-gray-600"
+                            dislikedReviews[review._id]
+                              ? "text-red-600"
+                              : "text-gray-600"
                           }`}
-                          onClick={() => handleLikeDislike(review._id, "dislike")}
+                          onClick={() =>
+                            handleLikeDislike(review._id, "dislike")
+                          }
                         >
-                          👎 {reviewDislikes[review._id] || review.DislikeCount} Dislikes
+                          👎 {reviewDislikes[review._id] || review.DislikeCount}{" "}
+                          Dislikes
                         </button>
 
                         <button className="flex items-center text-gray-600 hover:text-purple-600 text-sm">
