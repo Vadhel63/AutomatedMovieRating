@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import { Film, ArrowLeft, Loader, Star, User } from "lucide-react";
 import API from "../api";
+
 const MovieReviews = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -90,63 +90,79 @@ const MovieReviews = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-indigo-900 text-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-950 to-purple-900 text-white p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={handleGoBack}
-            className="bg-indigo-800 hover:bg-indigo-700 p-2 rounded-full transition-colors duration-200"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div className="flex items-center">
-            <Film className="mr-2 text-indigo-400" />
-            <h1 className="text-3xl font-bold text-white">
-              Reviews for {movieName || "Movie"}
-            </h1>
+        {/* Header with animated gradient border */}
+        <div className="mb-8 relative overflow-hidden rounded-2xl p-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+          <div className="flex items-center gap-4 p-4 bg-gray-900 rounded-xl">
+            <button
+              onClick={handleGoBack}
+              className="bg-indigo-700 hover:bg-indigo-600 p-2 rounded-full transition-colors duration-200 shadow-lg"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center">
+              <Film className="mr-3 text-indigo-400" size={24} />
+              <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 to-purple-300">
+                Reviews for {movieName || "Movie"}
+              </h1>
+            </div>
           </div>
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="flex justify-center items-center h-64">
+          <div className="flex flex-col justify-center items-center h-64 gap-4">
             <Loader className="animate-spin text-indigo-400" size={48} />
+            <p className="text-indigo-300 animate-pulse">Loading reviews...</p>
           </div>
         ) : error ? (
-          <div className="bg-red-900/30 border border-red-700 p-4 rounded-lg text-center">
-            <p>{error}</p>
+          <div className="bg-red-900/30 border border-red-700 p-6 rounded-lg text-center shadow-lg">
+            <p className="text-red-300">{error}</p>
           </div>
         ) : reviews.length > 0 ? (
           <div className="space-y-6">
             {reviews.map((review) => (
               <div
                 key={review._id}
-                className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg hover:shadow-indigo-500/20 transition-all duration-300"
+                className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50 shadow-xl hover:shadow-indigo-500/20 hover:border-indigo-500/30 transition-all duration-300"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-indigo-700 rounded-full p-2">
-                      <User className="text-white" size={18} />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full p-3 shadow-lg">
+                      <User className="text-white" size={20} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-indigo-300">
+                      <h3 className="font-semibold text-lg text-indigo-300">
                         {review.User[0]?.UserName || "Anonymous User"}
                       </h3>
-                      <span className="text-sm text-gray-400">
+                      <div className="flex items-center gap-2 mt-1">
+                        {renderStars(review.rating)}
+                        <span className="text-sm text-gray-400 ml-2">
+                          ({review.rating})
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-400 block mt-1">
                         {formatDate(review.updatedAt)}
                       </span>
                     </div>
                   </div>
-                  <div>{(review.Description)}</div>
+                  <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700/50 mt-2 md:mt-0 shadow-inner">
+                    <p className="text-gray-200 italic">{review.Description}</p>
+                  </div>
                 </div>
-                {/* <p className="text-gray-300">{review.Comment}</p> */}
               </div>
             ))}
           </div>
         ) : (
-          <div className="bg-gray-800 rounded-xl p-8 text-center shadow-lg">
-            <p className="text-gray-400">No reviews found for this movie.</p>
+          <div className="bg-gray-800/80 backdrop-blur-sm rounded-xl p-8 text-center shadow-lg border border-gray-700/50">
+            <Film className="mx-auto text-gray-600 mb-4" size={48} />
+            <p className="text-gray-400 text-lg">
+              No reviews found for this movie.
+            </p>
+            <p className="text-gray-500 mt-2">
+              Be the first to share your thoughts!
+            </p>
           </div>
         )}
       </div>

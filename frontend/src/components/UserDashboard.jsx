@@ -147,7 +147,6 @@ const UserDashboard = () => {
         },
         body: JSON.stringify({
           Description: reviewText,
-          rating: reviewRating,
           User: user.user._id,
           Movie: selectedMovie._id,
         }),
@@ -522,26 +521,7 @@ const UserDashboard = () => {
                 </div>
               </div>
 
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Rating
-                </label>
-                <div className="flex items-center">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      size={24}
-                      className={`cursor-pointer ${
-                        star <= reviewRating
-                          ? "text-yellow-500"
-                          : "text-gray-300"
-                      }`}
-                      fill={star <= reviewRating ? "currentColor" : "none"}
-                      onClick={() => setReviewRating(star)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <div className="mb-4"></div>
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">

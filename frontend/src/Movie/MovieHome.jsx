@@ -9,6 +9,7 @@ import {
   Trash2,
   Loader,
   MessageSquare,
+  BarChart,
 } from "lucide-react";
 
 const MovieHome = () => {
@@ -95,6 +96,10 @@ const MovieHome = () => {
     navigate(`/MovieReviews/${movieId}`, { state: { movieName } });
   };
 
+  const handleViewStatistics = (movieId, movieName) => {
+    navigate(`/MovieReviewStats/${movieId}`, { state: { movieName } });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-indigo-900 text-white p-6">
       {/* Header with search */}
@@ -167,7 +172,7 @@ const MovieHome = () => {
                     {movie.Description}
                   </p>
 
-                  <div className="flex flex-wrap gap-2 justify-between items-center">
+                  <div className="flex flex-wrap gap-2 justify-between items-center mb-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent card click event
@@ -188,15 +193,29 @@ const MovieHome = () => {
                       <Trash2 size={16} />
                       <span>Delete</span>
                     </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation(); // Prevent card click event
                         handleViewReviews(movie._id, movie.Name);
                       }}
-                      className="flex items-center gap-1 bg-purple-600 hover:bg-purple-500 py-1.5 px-3 rounded-lg transition-colors duration-200 mt-2 w-full"
+                      className="flex items-center justify-center gap-1 bg-purple-600 hover:bg-purple-500 py-1.5 px-3 rounded-lg transition-colors duration-200"
                     >
                       <MessageSquare size={16} />
-                      <span>View Reviews</span>
+                      <span>Reviews</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click event
+                        handleViewStatistics(movie._id, movie.Name);
+                      }}
+                      className="flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-500 py-1.5 px-3 rounded-lg transition-colors duration-200"
+                    >
+                      <BarChart size={16} />
+                      <span>Stats</span>
                     </button>
                   </div>
                 </div>

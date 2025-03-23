@@ -12,6 +12,7 @@ import MovieDetails from "./Movie/MovieDetails";
 import AdminDashboard from "./components/AdminDashboard";
 import UserDashboard from "./components/UserDashboard";
 import MovieReviews from "./Movie/MovieReviews";
+import MovieReviewStatistics from "./Movie/MovieReviewStaticstics";
 const App = () => {
   return (
     <Router>
@@ -30,7 +31,10 @@ const App = () => {
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/user-dashboard" element={<UserDashboard />} />
           <Route path="/MovieReviews/:id" element={<MovieReviews />} />
-          
+          <Route
+            path="/MovieReviewStats/:id"
+            element={<MovieReviewStatistics />}
+          />
         </Route>
       </Routes>
     </Router>
