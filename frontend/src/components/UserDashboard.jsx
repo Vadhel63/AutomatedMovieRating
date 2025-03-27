@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Search, Filter, History, Star, Film, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import defaultAvatar from "../assests/s10.jpg";
-import { FaUser, FaSearch, FaSignOutAlt } from "react-icons/fa";
+import { FaSignOutAlt } from "react-icons/fa";
 
 const UserDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,10 +24,11 @@ const UserDashboard = () => {
   const [likedReviews, setLikedReviews] = useState({});
   const [dislikedReviews, setdislikedReviews] = useState({});
   const [reviewDislikes, setReviewDislikes] = useState({});
+  const [userHistory, setUserHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const navigate = useNavigate();
 
   // Fetch user data and token from localStorage or context
-
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     const userData = JSON.parse(localStorage.getItem("user"));
@@ -67,24 +68,90 @@ const UserDashboard = () => {
       }
     };
 
-    // if (authToken) {
-    fetchMovies();
-    // }
+    if (authToken) {
+      fetchMovies();
+    }
   }, [authToken]);
 
+  // Fetch user history from backend
+  useEffect(() => {
+    const fetchUserHistory = async () => {
+      if (!authToken) return;
+
+      setIsLoadingHistory(true);
+      try {
+        const response = await fetch("http://localhost:5000/user/history", {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUserHistory(data.history || []);
+          // Also update the recentlyVisited state for compatibility
+          setRecentlyVisited(data.history || []);
+        } else {
+          console.error("Failed to fetch user history");
+        }
+      } catch (error) {
+        console.error("Error fetching user history:", error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    if (authToken && user?.user?.Role === "User") {
+      fetchUserHistory();
+    }
+  }, [authToken, user]);
+
   // Handle movie click to track recently visited movies
-  const handleMovieClick = (movie) => {
+  const handleMovieClick = async (movie) => {
+    // Update local state for immediate UI feedback
     const updatedRecentlyVisited = [
       movie,
-      ...recentlyVisited.filter((m) => m._id !== movie._id).slice(0, 4),
+      ...recentlyVisited.filter((m) => m._id !== movie._id),
     ];
     setRecentlyVisited(updatedRecentlyVisited);
+
+    // Send request to backend to update history
+    if (authToken && user?.user?.Role === "User") {
+      try {
+        await fetch("http://localhost:5000/user/history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ movieId: movie._id }),
+        });
+      } catch (error) {
+        console.error("Error updating watch history:", error);
+      }
+    }
   };
+
+  // Handle watch button click
+  const handleWatchClick = async (movie, e) => {
+    // Prevent the parent onClick from firing
+    if (e) {
+      e.stopPropagation();
+    }
+
+    // Call the same function as clicking on the movie
+    handleMovieClick(movie);
+
+    // Additional logic for watching the movie could go here
+    console.log(`Watching movie: ${movie.Name}`);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
     navigate("/", { replace: true });
   };
+
   // Handle search functionality
   const handleSearch = async (term) => {
     try {
@@ -231,6 +298,16 @@ const UserDashboard = () => {
       )
     : [];
 
+  // Format date for history items
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return (
+      date.toLocaleDateString() +
+      " " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-100">
       {/* Header Component */}
@@ -329,41 +406,168 @@ const UserDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex items-center mb-4">
-              <History size={20} className="mr-2 text-gray-600" />
-              <h2 className="text-lg font-semibold">Watch History</h2>
-            </div>
-            <div className="space-y-3">
-              {(showAllHistory
-                ? recentlyVisited
-                : recentlyVisited.slice(0, 5)
-              ).map((movie, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-10 h-10 rounded bg-gray-200 flex-shrink-0">
-                    <img
-                      src={
-                        movie.MovieImage ||
-                        "/placeholder.svg?height=40&width=40" ||
-                        "/placeholder.svg"
-                      }
-                      alt={movie.Name}
-                      className="w-full h-full object-cover rounded"
-                    />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium">{movie.Name}</p>
-                    <p className="text-xs text-gray-500">Visited recently</p>
-                  </div>
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <History size={20} className="mr-2 text-white" />
+                  <h2 className="text-lg font-semibold text-white">
+                    Watch History
+                  </h2>
                 </div>
-              ))}
+                {userHistory.length > 3 && (
+                  <button
+                    className="text-xs text-white bg-blue-700 hover:bg-blue-900 px-2 py-1 rounded-full transition-colors"
+                    onClick={() => setShowAllHistory(!showAllHistory)}
+                  >
+                    {showAllHistory ? "Show Less" : "View All"}
+                  </button>
+                )}
+              </div>
             </div>
-            <button
-              className="mt-4 text-sm text-blue-600 hover:underline"
-              onClick={() => setShowAllHistory(!showAllHistory)}
-            >
-              {showAllHistory ? "Show Less" : "View All History"}
-            </button>
+
+            {isLoadingHistory ? (
+              <div className="flex justify-center items-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            ) : userHistory.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {/* Show first 3 items by default, or all items if showAllHistory is true */}
+                {(showAllHistory ? userHistory : userHistory.slice(0, 3)).map(
+                  (movie, index) => (
+                    <div
+                      key={index}
+                      className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        // Find the original movie object to navigate to
+                        const originalMovie = movies.find(
+                          (m) => m._id === movie._id
+                        );
+                        if (originalMovie) {
+                          handleMovieClick(originalMovie);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-12 h-16 rounded overflow-hidden bg-gray-200 flex-shrink-0 shadow-sm">
+                          <img
+                            src={
+                              movie.MovieImage ||
+                              "/placeholder.svg?height=64&width=48"
+                            }
+                            alt={movie.Name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium text-gray-900">
+                                {movie.Name}
+                              </h3>
+                              <p className="text-xs text-gray-500">
+                                {movie.Type}
+                              </p>
+                            </div>
+                            <div className="flex items-center">
+                              <Star
+                                size={14}
+                                className="text-yellow-500 mr-1"
+                                fill="currentColor"
+                              />
+                              <span className="text-xs font-medium">
+                                {movie.MovieRating}/5
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center mt-1 text-xs text-gray-500">
+                            <span className="inline-block bg-blue-100 text-blue-800 rounded-full px-2 py-0.5 text-xs">
+                              {new Date(movie.visitedAt).toLocaleDateString()}
+                            </span>
+                            <span className="ml-2">
+                              {new Date(movie.visitedAt).toLocaleTimeString(
+                                [],
+                                { hour: "2-digit", minute: "2-digit" }
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {/* Show "View All History" button at the bottom if there are more than 3 items and not showing all */}
+                {userHistory.length > 3 && !showAllHistory && (
+                  <div className="p-3 bg-gray-50">
+                    <button
+                      className="w-full py-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center"
+                      onClick={() => setShowAllHistory(true)}
+                    >
+                      <span>View All History</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 ml-1"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Show "Show Less" button at the bottom if showing all history */}
+                {showAllHistory && userHistory.length > 3 && (
+                  <div className="p-3 bg-gray-50">
+                    <button
+                      className="w-full py-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center"
+                      onClick={() => setShowAllHistory(false)}
+                    >
+                      <span>Show Less</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 ml-1"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-6 text-center">
+                <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-gray-500 mb-2">No watch history yet</p>
+                <p className="text-sm text-gray-400">
+                  Start watching movies to see them here!
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -404,22 +608,26 @@ const UserDashboard = () => {
                       />
                       <span className="text-sm">{movie.MovieRating}/5</span>
                     </div>
-                    <button
-                      className="mt-2 text-sm text-blue-600 hover:underline"
-                      onClick={() => handleWriteReview(movie)}
-                    >
-                      Write Review
-                    </button>
-                    <button
-                      className="mt-2 text-sm text-blue-600 hover:underline"
-                      onClick={() => {
-                        setSelectedMovie(movie);
-                        setShowReviews(true);
-                        fetchMovieReviews(movie._id);
-                      }}
-                    >
-                      View Reviews
-                    </button>
+                    <div className="flex space-x-2 mt-2">
+                      <button
+                        className="text-sm text-white bg-blue-600 px-2 py-1 rounded hover:bg-blue-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleWatchClick(movie);
+                        }}
+                      >
+                        Watch
+                      </button>
+                      <button
+                        className="text-sm text-blue-600 hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleWriteReview(movie);
+                        }}
+                      >
+                        Review
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -441,6 +649,8 @@ const UserDashboard = () => {
                       src={
                         movie.MovieImage ||
                         "/placeholder.svg?height=300&width=200" ||
+                        "/placeholder.svg" ||
+                        "/placeholder.svg" ||
                         "/placeholder.svg"
                       }
                       alt={movie.Name}
@@ -460,18 +670,28 @@ const UserDashboard = () => {
                       <span className="text-sm">{movie.MovieRating}/5</span>
                     </div>
                     <div className="mt-3 flex space-x-2">
-                      <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md">
+                      <button
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent triggering the parent onClick
+                          handleWatchClick(movie, e);
+                        }}
+                      >
                         Watch
                       </button>
                       <button
                         className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md"
-                        onClick={() => handleWriteReview(movie)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent triggering the parent onClick
+                          handleWriteReview(movie);
+                        }}
                       >
                         Review
                       </button>
                       <button
                         className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent triggering the parent onClick
                           setSelectedMovie(movie);
                           setShowReviews(true);
                           fetchMovieReviews(movie._id);
@@ -509,6 +729,8 @@ const UserDashboard = () => {
                     src={
                       selectedMovie.MovieImage ||
                       "/placeholder.svg?height=300&width=200" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={selectedMovie.Name}
@@ -575,7 +797,6 @@ const UserDashboard = () => {
             <div className="p-4 overflow-y-auto flex-grow">
               {movieReviews.length > 0 ? (
                 movieReviews.map((review) => (
-                  // console.logs(review)
                   <div
                     key={review._id}
                     className="mb-6 border-b pb-4 last:border-0"
@@ -620,28 +841,6 @@ const UserDashboard = () => {
                       <p className="text-gray-800 mb-3">{review.Description}</p>
 
                       <div className="flex items-center space-x-4 mt-2">
-                        {/* <button
-                          className={`flex items-center text-sm ${
-                            likedReviews[review._id] ? "text-blue-600" : "text-gray-600 hover:text-blue-600"
-                          }`}
-                          onClick={() => handleLikeDislike(review._id, "like")}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
-                            />
-                          </svg>
-                          {reviewLikes[review._id] || review.LikeCount} Likes
-                        </button> */}
                         <button
                           className={`flex items-center text-sm ${
                             likedReviews[review._id]

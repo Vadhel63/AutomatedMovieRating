@@ -52,6 +52,91 @@ const { isAdmin } = require("../middleware/auth");
 //   }
 // });
 
+router.post("/history", auth, async (req, res, next) => {
+  try {
+    const userId = req.userData?.userId;
+    const { movieId } = req.body;
+
+    if (!userId || !movieId) {
+      return next(new HttpError("User ID and Movie ID are required.", 400));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(movieId)) {
+      return next(new HttpError("Invalid movie ID format.", 400));
+    }
+
+    // Find the user and update their history
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(new HttpError("User not found.", 404));
+    }
+
+    // Check if movie already exists in history
+    const existingEntry = user.History.find(
+      (entry) => entry.movieId.toString() === movieId
+    );
+
+    if (existingEntry) {
+      // Update the timestamp if movie already exists in history
+      existingEntry.visitedAt = new Date();
+    } else {
+      // Add new entry to history
+      user.History.unshift({
+        movieId,
+        visitedAt: new Date(),
+      });
+    }
+
+    await user.save();
+    res.status(200).json({ message: "History updated successfully" });
+  } catch (err) {
+    console.error("Error updating history:", err);
+    next(
+      new HttpError("Failed to update history, please try again later.", 500)
+    );
+  }
+});
+
+// Get user history
+router.get("/history", auth, async (req, res, next) => {
+  try {
+    const userId = req.userData?.userId;
+
+    if (!userId) {
+      return next(new HttpError("Unauthorized access.", 401));
+    }
+
+    const user = await User.findById(userId).populate({
+      path: "History.movieId",
+      model: "Movie",
+      select: "Name MovieImage Type MovieRating Description",
+    });
+
+    if (!user) {
+      return next(new HttpError("User not found.", 404));
+    }
+
+    // Format the history data for the frontend
+    const history = user.History.map((item) => ({
+      _id: item.movieId?._id || item.movieId,
+      Name: item.movieId?.Name || "Unknown Movie",
+      MovieImage: item.movieId?.MovieImage || null,
+      Type: item.movieId?.Type || "Unknown",
+      MovieRating: item.movieId?.MovieRating || 0,
+      Description: item.movieId?.Description || "",
+      visitedAt: item.visitedAt,
+    }));
+
+    res.status(200).json({ history });
+  } catch (err) {
+    console.error("Error fetching history:", err);
+    next(
+      new HttpError("Failed to fetch history, please try again later.", 500)
+    );
+  }
+});
+
+//----------------------------------------------------
 router.post("/signup", async (req, res, next) => {
   const { UserName, Email, Password, Role } = req.body;
 
@@ -79,7 +164,9 @@ router.post("/signup", async (req, res, next) => {
 
   try {
     await createdUser.save();
-    res.status(201).json({ message: "Signup successful. Waiting for admin approval if Producer." });
+    res.status(201).json({
+      message: "Signup successful. Waiting for admin approval if Producer.",
+    });
   } catch (err) {
     return next(new HttpError("Signup failed, please try again", 500));
   }
@@ -87,7 +174,10 @@ router.post("/signup", async (req, res, next) => {
 
 router.get("/pending-producers", async (req, res, next) => {
   try {
-    const pendingProducers = await User.find({ Role: "Producer", Status: "Pending" });
+    const pendingProducers = await User.find({
+      Role: "Producer",
+      Status: "Pending",
+    });
     res.json(pendingProducers);
   } catch (err) {
     return next(new HttpError("Failed to fetch pending producers", 500));
@@ -106,7 +196,6 @@ router.patch("/update-producer/:id", async (req, res, next) => {
     return next(new HttpError("Failed to update producer status", 500));
   }
 });
-
 
 router.post("/login", async (req, res, next) => {
   const { Email, Password } = req.body;
