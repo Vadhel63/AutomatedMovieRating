@@ -13,13 +13,14 @@ import AdminDashboard from "./components/AdminDashboard";
 import UserDashboard from "./components/UserDashboard";
 import MovieReviews from "./Movie/MovieReviews";
 import MovieReviewStatistics from "./Movie/MovieReviewStaticstics";
+import ProducerApproval from "./components/ProducerApproval";
 const App = () => {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Register />} />
-        {/* <Route path="/admin/approve-producers" element={<ApproveProducers />} />   */}
+        <Route path="/admin/approve-producers" element={<ProducerApproval />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/home" element={<Home />} />
           <Route path="/profile" element={<ProfilePage />} />

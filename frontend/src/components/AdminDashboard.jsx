@@ -61,7 +61,8 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchPendingProducers = async () => {
       try {
-        const response = await API.get("/user/pending-producers");
+        const response = await API.get("/user/pendings");
+        console.log("Fetched pending producers:", response.data);
         setPendingProducers(response.data);
       } catch (error) {
         console.error("Error fetching pending producers:", error);

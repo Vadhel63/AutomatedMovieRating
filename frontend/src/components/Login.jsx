@@ -34,7 +34,12 @@ const Login = () => {
       setError("");
       navigate("/home");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed!");
+      console.log("Full error:", err);
+  const backendMsg =
+    err.response?.data?.message ||
+    err.response?.data?.error ||
+    err.message;
+  setError(backendMsg || "Login failed!");
     } finally {
       setIsLoading(false);
     }

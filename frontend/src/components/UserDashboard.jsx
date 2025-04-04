@@ -26,8 +26,10 @@ const UserDashboard = () => {
   const [reviewDislikes, setReviewDislikes] = useState({});
   const [userHistory, setUserHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  // const [authReady, setAuthReady] = useState(false);
   const navigate = useNavigate();
 
+  
   // Fetch user data and token from localStorage or context
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -35,11 +37,14 @@ const UserDashboard = () => {
     if (token && userData) {
       setAuthToken(token);
       setUser(userData);
+      // setAuthReady(true); // Mark ready whether data is found or not
     }
   }, []);
 
   // Fetch movies from API
   useEffect(() => {
+    setTimeout(1000);
+
     const fetchMovies = async () => {
       try {
         const response = await fetch("http://localhost:5000/Movie/all", {
@@ -68,13 +73,13 @@ const UserDashboard = () => {
       }
     };
 
-    if (authToken) {
       fetchMovies();
-    }
-  }, [authToken]);
+  },[authToken]);
 
   // Fetch user history from backend
   useEffect(() => {
+    // if (!authReady || !authToken || user?.user?.Role !== "User") return;
+    setTimeout(1000);
     const fetchUserHistory = async () => {
       if (!authToken) return;
 
@@ -101,10 +106,8 @@ const UserDashboard = () => {
       }
     };
 
-    if (authToken && user?.user?.Role === "User") {
       fetchUserHistory();
-    }
-  }, [authToken, user]);
+  }, [authToken]);
 
   // Handle movie click to track recently visited movies
   const handleMovieClick = async (movie) => {

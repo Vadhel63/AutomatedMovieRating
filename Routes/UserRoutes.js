@@ -9,6 +9,76 @@ const mongoose = require("mongoose");
 const { upload } = require("../middleware/Cloudinary");
 
 const { isAdmin } = require("../middleware/auth");
+// const checkAuth = require("../middleware/check-auth");
+
+// Route to get all pending producers
+router.get("/pending-producers", auth, async (req, res, next) => {
+  // Check if the requesting user is an admin
+  if (req.userData.role !== "Admin") {
+    return next(new HttpError("Only admins can access this data", 403));
+  }
+
+  try {
+    const pendingProducers = await User.find({ 
+      Role: "Producer", 
+      Status: "Pending" 
+    }).select('-Password');
+    
+    res.json(pendingProducers);
+  } catch (err) {
+    return next(new HttpError("Failed to fetch pending producers", 500));
+  }
+});
+
+// Route to approve or reject a producer
+router.put("/approve-producer/:id", auth, async (req, res, next) => {
+  const { id } = req.params;
+  const { status } = req.body; // "Accepted" or "Rejected"
+  
+  // Check if the requesting user is an admin
+  if (req.userData.role !== "Admin") {
+    return next(new HttpError("Only admins can update producer status", 403));
+  }
+  
+  if (status !== "Accepted" && status !== "Rejected") {
+    return next(new HttpError("Invalid status value", 400));
+  }
+
+  try {
+    const producer = await User.findById(id);
+    
+    if (!producer) {
+      return next(new HttpError("Producer not found", 404));
+    }
+    
+    if (producer.Role !== "Producer") {
+      return next(new HttpError("User is not a producer", 400));
+    }
+    
+    producer.Status = status;
+    await producer.save();
+    
+    res.json({ message: `Producer ${status.toLowerCase()} successfully` });
+  } catch (err) {
+    return next(new HttpError("Failed to update producer status", 500));
+  }
+});
+
+// Route to check if an email already exists
+router.post('/check-email', async (req, res, next) => {
+  const { Email } = req.body;
+  
+  if (!Email) {
+    return next(new HttpError('Email is required', 400));
+  }
+
+  try {
+    const existingUser = await User.findOne({ Email });
+    res.json({ exists: !!existingUser });
+  } catch (err) {
+    return next(new HttpError('Email check failed', 500));
+  }
+});
 // router.post("/signup", async (req, res, next) => {
 //   const { UserName, Email, Password, Role } = req.body;
 //   let existingUser;
@@ -172,7 +242,7 @@ router.post("/signup", async (req, res, next) => {
   }
 });
 
-router.get("/pending-producers", async (req, res, next) => {
+router.get("/pendings", async (req, res, next) => {
   try {
     const pendingProducers = await User.find({
       Role: "Producer",
@@ -184,47 +254,63 @@ router.get("/pending-producers", async (req, res, next) => {
   }
 });
 
-router.patch("/update-producer/:id", async (req, res, next) => {
-  const { id } = req.params;
-  const { action } = req.body; // "Accept" or "Reject"
+// router.patch("/update-producer/:id", async (req, res, next) => {
+//   const { id } = req.params;
+//   const { action } = req.body; // "Accept" or "Reject"
 
+//   try {
+//     const updatedStatus = action === "Accept" ? "Accepted" : "Rejected";
+//     await User.findByIdAndUpdate(id, { Status: updatedStatus }, { new: true });
+//     res.json({ message: `Producer ${updatedStatus}` });
+//   } catch (err) {
+//     return next(new HttpError("Failed to update producer status", 500));
+//   }
+// });
+
+router.post("/login", async (req, res) => {
   try {
-    const updatedStatus = action === "Accept" ? "Accepted" : "Rejected";
-    await User.findByIdAndUpdate(id, { Status: updatedStatus }, { new: true });
-    res.json({ message: `Producer ${updatedStatus}` });
+    const { Email, Password } = req.body;
+    const identifiedUser = await User.findOne({ Email: Email });
+
+    if (!identifiedUser) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isValidPassword = await bcrypt.compare(
+      Password,
+      identifiedUser.Password
+    );
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Check if producer is pending or rejected
+    if (
+      identifiedUser.Role === "Producer" &&
+      identifiedUser.Status === "Pending"
+    ) {
+      return res.status(403).json({ message: "Your request is not approved" });
+    } else if (
+      identifiedUser.Role === "Producer" &&
+      identifiedUser.Status === "Rejected"
+    ) {
+      return res.status(403).json({ message: "Your request is rejected" });
+    }
+
+    const token = jwt.sign(
+      { userId: identifiedUser._id, role: identifiedUser.Role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.json({ token: token, user: identifiedUser });
   } catch (err) {
-    return next(new HttpError("Failed to update producer status", 500));
+    console.error(err);
+    return res.status(500).json({ message: "Something went wrong!" });
   }
 });
 
-router.post("/login", async (req, res, next) => {
-  const { Email, Password } = req.body;
-  const identifiedUser = await User.findOne({ Email: Email });
-
-  if (!identifiedUser) {
-    const error = new HttpError("Invalid credentials", 401);
-    return next(error);
-  }
-
-  const isValidPassword = await bcrypt.compare(
-    Password,
-    identifiedUser.Password
-  );
-
-  if (!isValidPassword) {
-    const error = new HttpError("Invalid credentials", 401);
-    return next(error);
-  }
-
-  const token = jwt.sign(
-    { userId: identifiedUser._id, role: identifiedUser.Role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
-  );
-
-  // You may want to send back user data or a token upon successful login
-  res.json({ token: token, user: identifiedUser });
-});
 router.get("/", auth, isAdmin, async (req, res, next) => {
   try {
     const users = await User.find();

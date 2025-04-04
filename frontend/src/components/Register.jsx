@@ -20,6 +20,7 @@ const Register = () => {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,17 +29,38 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    
     try {
-      const response = await API.post(
-        "http://localhost:5000/user/signup",
-        formData
-      );
-      setSuccess("Registration successful!");
-      const token = response.data.token;
-      localStorage.setItem("authToken", token); // Save the token for future requests
-      setError("");
-      navigate("/"); // Redirect to Home after registration
+      // Check for existing user account with the same email first
+      const checkUser = await API.post("/user/check-email", { Email: formData.Email });
+      
+      if (checkUser.data.exists && formData.Role === "Producer") {
+        setError("You already have an account. Please login instead.");
+        setIsLoading(false);
+        return;
+      }
+      
+      const response = await API.post("/user/signup", formData);
+      
+      setIsLoading(false);
+      
+      if (formData.Role === "Producer") {
+        setSuccess("Your producer account request has been submitted for admin approval. You'll be notified once approved.");
+      } else {
+        setSuccess("Account created successfully!");
+        // Save the token if provided in response
+        if (response.data.token) {
+          localStorage.setItem("authToken", response.data.token);
+        }
+        // Redirect to home/login after a short delay for regular users
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+      }
     } catch (err) {
+      setIsLoading(false);
       setError(err.response?.data?.message || "Registration failed!");
       setSuccess("");
     }
@@ -200,12 +222,36 @@ const Register = () => {
             </div>
           </div>
 
+          {formData.Role === "Producer" && (
+            <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+              <p className="text-amber-700 text-sm flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Producer accounts require admin approval before activation.
+              </p>
+            </div>
+          )}
+
           <div className="pt-2">
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              disabled={isLoading}
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 ${
+                isLoading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              Create Account
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                "Create Account"
+              )}
             </button>
           </div>
         </form>
