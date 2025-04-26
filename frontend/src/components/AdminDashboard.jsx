@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import API from "../api"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import API from "../api";
 import {
   Users,
   Activity,
@@ -21,100 +21,147 @@ import {
   Briefcase,
   Mail,
   Phone,
-} from "lucide-react"
+} from "lucide-react";
 
 const AdminDashboard = () => {
-  const [pendingProducers, setPendingProducers] = useState([])
-  const [admin, setAdmin] = useState(null)
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
-  const [activeTab, setActiveTab] = useState("users")
-  const [notifications, setNotifications] = useState(3)
-  const navigate = useNavigate()
+  const [pendingProducers, setPendingProducers] = useState([]);
+  const [admin, setAdmin] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [activeTab, setActiveTab] = useState("users");
+  const [notifications, setNotifications] = useState(3);
+  const navigate = useNavigate();
 
   // Mock data for dashboard stats
   const stats = [
-    { title: "Total Users", value: users.length, icon: Users, color: "bg-blue-500" },
-    { title: "Active Today", value: Math.floor(users.length * 0.7), icon: CheckCircle, color: "bg-green-500" },
-    { title: "New This Week", value: Math.floor(users.length * 0.2), icon: UserPlus, color: "bg-purple-500" },
-    { title: "Pending Approvals", value: pendingProducers.length, icon: Clock, color: "bg-amber-500" },
-  ]
+    {
+      title: "Total Users",
+      value: users.length,
+      icon: Users,
+      color: "bg-blue-500",
+    },
+    {
+      title: "Active Today",
+      value: Math.floor(users.length * 0.7),
+      icon: CheckCircle,
+      color: "bg-green-500",
+    },
+    {
+      title: "New This Week",
+      value: Math.floor(users.length * 0.2),
+      icon: UserPlus,
+      color: "bg-purple-500",
+    },
+    {
+      title: "Pending Approvals",
+      value: pendingProducers.length,
+      icon: Clock,
+      color: "bg-amber-500",
+    },
+  ];
 
   // Mock data for recent activities
   const recentActivities = [
-    { user: "John Doe", action: "logged in", time: "2 minutes ago", icon: User },
-    { user: "Sarah Smith", action: "updated profile", time: "1 hour ago", icon: User },
-    { user: "Mike Johnson", action: "uploaded a document", time: "3 hours ago", icon: User },
-    { user: "Emily Davis", action: "requested approval", time: "5 hours ago", icon: User },
-    { user: "Robert Wilson", action: "created a new account", time: "1 day ago", icon: UserPlus },
-  ]
+    {
+      user: "John Doe",
+      action: "logged in",
+      time: "2 minutes ago",
+      icon: User,
+    },
+    {
+      user: "Sarah Smith",
+      action: "updated profile",
+      time: "1 hour ago",
+      icon: User,
+    },
+    {
+      user: "Mike Johnson",
+      action: "uploaded a document",
+      time: "3 hours ago",
+      icon: User,
+    },
+    {
+      user: "Emily Davis",
+      action: "requested approval",
+      time: "5 hours ago",
+      icon: User,
+    },
+    {
+      user: "Robert Wilson",
+      action: "created a new account",
+      time: "1 day ago",
+      icon: UserPlus,
+    },
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem("authToken")
+      const token = localStorage.getItem("authToken");
       if (!token) {
-        navigate("/")
-        return
+        navigate("/");
+        return;
       }
 
       try {
         // Fetch admin profile
         const profileResponse = await API.get("/user/profile", {
           headers: { Authorization: `Bearer ${token}` },
-        })
-        setAdmin(profileResponse.data.user)
+        });
+        setAdmin(profileResponse.data.user);
 
         // Fetch all users
         const usersResponse = await API.get("/user", {
           headers: { Authorization: `Bearer ${token}` },
-        })
-        setUsers(usersResponse.data.users)
+        });
+        setUsers(usersResponse.data.users);
 
-        setLoading(false)
+        setLoading(false);
       } catch (err) {
-        setError("Failed to fetch data")
-        setLoading(false)
+        setError("Failed to fetch data");
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [navigate])
+    fetchData();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchPendingProducers = async () => {
       try {
-        const response = await API.get("/user/pendings")
-        console.log("Fetched pending producers:", response.data)
-        setPendingProducers(response.data)
+        const response = await API.get("/user/pendings");
+        console.log("Fetched pending producers:", response.data);
+        setPendingProducers(response.data);
       } catch (error) {
-        console.error("Error fetching pending producers:", error)
+        console.error("Error fetching pending producers:", error);
       }
-    }
+    };
 
-    fetchPendingProducers()
-  }, [])
+    fetchPendingProducers();
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken")
-    navigate("/")
-  }
+    localStorage.removeItem("authToken");
+    navigate("/");
+  };
 
   const handleDeleteUser = async (userId) => {
-    const isConfirmed = window.confirm("Are you sure you want to delete this user?")
+    const isConfirmed = window.confirm(
+      "Are you sure you want to delete this user?"
+    );
     if (isConfirmed) {
       try {
-        const token = localStorage.getItem("authToken")
+        const token = localStorage.getItem("authToken");
         await API.delete(`/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
-        })
-        setUsers(users.filter((user) => user._id !== userId))
+        });
+        setUsers(users.filter((user) => user._id !== userId));
       } catch (err) {
-        setError("Failed to delete user.")
+        setError("Failed to delete user.");
       }
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -122,13 +169,19 @@ const AdminDashboard = () => {
         <div className="flex flex-col items-center space-y-4">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
-            <div className="w-4 h-4 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-            <div className="w-4 h-4 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
+            <div
+              className="w-4 h-4 bg-purple-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.2s" }}
+            ></div>
+            <div
+              className="w-4 h-4 bg-green-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.4s" }}
+            ></div>
           </div>
           <p className="text-white font-medium">Loading dashboard...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -144,7 +197,7 @@ const AdminDashboard = () => {
           Try Again
         </button>
       </div>
-    )
+    );
   }
 
   return (
@@ -187,22 +240,32 @@ const AdminDashboard = () => {
                 >
                   <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-400 shadow-lg">
                     <img
-                      src={admin?.ProfileImage || "https://via.placeholder.com/150"}
+                      src={
+                        admin?.ProfileImage || "https://via.placeholder.com/150"
+                      }
                       alt="Admin"
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium leading-none">{admin?.UserName || "Admin"}</p>
-                    <p className="text-xs text-gray-400">{admin?.Role || "Administrator"}</p>
+                    <p className="text-sm font-medium leading-none">
+                      {admin?.UserName || "Admin"}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {admin?.Role || "Administrator"}
+                    </p>
                   </div>
+
                   <ChevronDown size={16} className="hidden md:block" />
                 </button>
 
                 {/* Profile dropdown menu */}
                 {showProfileDropdown && (
                   <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl py-1 z-10 text-gray-200 border border-gray-700">
-                    <a href="profile" className="flex items-center px-4 py-2 hover:bg-gray-700 transition-colors">
+                    <a
+                      href="profile"
+                      className="flex items-center px-4 py-2 hover:bg-gray-700 transition-colors"
+                    >
                       <User size={16} className="mr-2" />
                       My Profile
                     </a>
@@ -236,7 +299,9 @@ const AdminDashboard = () => {
                     <Users className="mr-2" size={20} />
                     User Management
                   </h2>
-                  <span className="bg-gray-700 text-xs px-2 py-1 rounded-full">{users.length} Total Users</span>
+                  <span className="bg-gray-700 text-xs px-2 py-1 rounded-full">
+                    {users.length} Total Users
+                  </span>
                 </div>
               </div>
 
@@ -262,10 +327,12 @@ const AdminDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium text-lg">{user.UserName}</p>
-                        <div className="flex items-center">
-                          <span className="text-xs bg-blue-500 px-2 py-0.5 rounded-full inline-block mr-2">
+
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="text-xs bg-blue-500 px-2 py-0.5 rounded-full inline-block">
                             {user.Role}
                           </span>
+                          <p className="text-xs font-semibold">{user.Status}</p>
                         </div>
                       </div>
                     </div>
@@ -285,8 +352,6 @@ const AdminDashboard = () => {
                         </div>
                       </div>
                     </div>
-
-                    
                   </div>
                 ))}
               </div>
@@ -295,7 +360,7 @@ const AdminDashboard = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminDashboard
+export default AdminDashboard;
