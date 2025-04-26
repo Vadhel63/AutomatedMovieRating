@@ -98,6 +98,7 @@ const ProfilePage = () => {
 
   if (error) {
     return (
+  
       <div className="flex flex-col items-center justify-center h-screen">
         <p className="text-red-500">{error}</p>
         <button
@@ -117,6 +118,15 @@ const ProfilePage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 1 }}
     >
+      <div className="absolute top-6 left-6">
+    <button
+      onClick={() => navigate(-1)}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-300"
+    >
+      ← Go Back
+    </button>
+  </div>
+  
       <div className="bg-white shadow-lg rounded-lg p-6 max-w-sm w-full transform transition duration-500 hover:scale-105">
         <div className="text-center mb-4">
           <motion.img

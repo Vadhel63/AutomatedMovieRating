@@ -26,6 +26,9 @@ const UserDashboard = () => {
   const [reviewDislikes, setReviewDislikes] = useState({});
   const [userHistory, setUserHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [movieStats, setMovieStats] = useState({});
+  const [stats, setStats] = useState({});
+
   // const [authReady, setAuthReady] = useState(false);
   const navigate = useNavigate();
 
@@ -41,6 +44,71 @@ const UserDashboard = () => {
     }
   }, []);
 
+  const fetchReviewStats = async (movieId) => {
+    try {
+      // const token = localStorage.getItem("authToken");
+      // if (!token) {
+      //   navigate("/");
+      //   return;
+      // }
+  
+      const response = await fetch(
+        `http://localhost:5000/review/Movie/${movieId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      const data = await response.json();
+      const reviews = data.reviews || [];
+      const movieStats = calculateStats(reviews);
+  
+      setStats((prevStats) => {
+        const newStats = {
+          ...prevStats,
+          [movieId]: movieStats,
+        };
+        console.log("Updated stats:", newStats);
+        return newStats;
+      });
+      console.log("Updated stats:", newStats);
+    } catch (err) {
+      console.error("Error fetching review statistics:", err);
+      
+    }
+  };
+  
+  
+  const calculateStats = (reviews) => {
+    console.log("Calculating stats for reviews:", reviews);
+    const totalReviews = reviews.length;
+    const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+    const avgRating = totalReviews > 0 ? (totalRating / totalReviews).toFixed(1) : 0;
+  
+    const distribution = {
+      "1-2": 0,
+      "2-3": 0,
+      "3-4": 0,
+      "4-5": 0,
+    };
+  
+    reviews.forEach((review) => {
+      const rating = review.rating || 0;
+      if (rating >= 1 && rating < 2) distribution["1-2"]++;
+      else if (rating >= 2 && rating < 3) distribution["2-3"]++;
+      else if (rating >= 3 && rating < 4) distribution["3-4"]++;
+      else if (rating >= 4 && rating <= 5) distribution["4-5"]++;
+    });
+  
+    return {
+      totalReviews,
+      averageRating: avgRating,
+      distribution,
+    };
+  };
+  
+  
   // Fetch movies from API
   useEffect(() => {
     setTimeout(1000);
@@ -75,7 +143,9 @@ const UserDashboard = () => {
 
       fetchMovies();
   },[authToken]);
-
+  
+  
+  
   // Fetch user history from backend
   useEffect(() => {
     // if (!authReady || !authToken || user?.user?.Role !== "User") return;
@@ -154,7 +224,11 @@ const UserDashboard = () => {
     localStorage.removeItem("user");
     navigate("/", { replace: true });
   };
-
+  useEffect(() => {
+    movies.forEach((movie) => {
+      fetchReviewStats(movie._id);
+    });
+  }, [movies]);
   // Handle search functionality
   const handleSearch = async (term) => {
     try {
@@ -479,7 +553,7 @@ const UserDashboard = () => {
                                 fill="currentColor"
                               />
                               <span className="text-xs font-medium">
-                                {movie.MovieRating}/5
+                              {stats[movie._id]?.averageRating || 0}/5
                               </span>
                             </div>
                           </div>
@@ -577,135 +651,57 @@ const UserDashboard = () => {
         {/* Main Content Area */}
         <div className="flex-grow">
           {/* Movie Recommendations */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <Star size={20} className="mr-2 text-yellow-500" />
-              Recommended for You
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {movies.slice(0, 2).map((movie) => (
-                <div
-                  key={movie._id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden flex"
-                >
-                  <div className="w-24 h-36 flex-shrink-0">
-                    <img
-                      src={movie.MovieImage || "/placeholder.svg"}
-                      alt={movie.Name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-4 flex flex-col justify-between">
-                    <div>
-                      <h3 className="font-semibold">{movie.Name}</h3>
-                      <p className="text-sm text-gray-600">{movie.Type}</p>
-                      <p className="text-sm text-gray-500">
-                        {movie.Description}
-                      </p>
-                    </div>
-                    <div className="flex items-center mt-2">
-                      <Star
-                        size={16}
-                        className="text-yellow-500 mr-1"
-                        fill="currentColor"
-                      />
-                      <span className="text-sm">{movie.MovieRating}/5</span>
-                    </div>
-                    <div className="flex space-x-2 mt-2">
-                      <button
-                        className="text-sm text-white bg-blue-600 px-2 py-1 rounded hover:bg-blue-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleWatchClick(movie);
-                        }}
-                      >
-                        Watch
-                      </button>
-                      <button
-                        className="text-sm text-blue-600 hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleWriteReview(movie);
-                        }}
-                      >
-                        Review
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          
 
           {/* Movie Browse Section */}
           <div>
             <h2 className="text-xl font-bold mb-4">Browse Movies</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredMovies.map((movie) => (
-                <div
-                  key={movie._id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden"
-                  onClick={() => handleMovieClick(movie)}
-                >
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={
-                        movie.MovieImage ||
-                        "/placeholder.svg?height=300&width=200" ||
-                        "/placeholder.svg" ||
-                        "/placeholder.svg" ||
-                        "/placeholder.svg"
-                      }
-                      alt={movie.Name}
-                      className="w-full h-full object-contain"
-                    />
+            {filteredMovies.map((movie) => (
+              <div key={movie._id} className="bg-white rounded-lg shadow-md overflow-hidden" onClick={() => handleMovieClick(movie)}>
+                <div className="h-48 overflow-hidden">
+                  <img
+                    src={movie.MovieImage || "/placeholder.svg?height=300&width=200"}
+                    alt={movie.Name}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold truncate">{movie.Name}</h3>
+                  <p className="text-sm text-gray-600">{movie.Type}</p>
+                  <p className="text-sm text-gray-500">{movie.Description}</p>
+                  <div className="flex items-center mt-2">
+                    <Star size={16} className="text-yellow-500 mr-1" fill="currentColor" />
+                    <span className="text-sm">
+                      {stats[movie._id]?.averageRating || 0}/5
+                    </span>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold truncate">{movie.Name}</h3>
-                    <p className="text-sm text-gray-600">{movie.Type}</p>
-                    <p className="text-sm text-gray-500">{movie.Description}</p>
-                    <div className="flex items-center mt-2">
-                      <Star
-                        size={16}
-                        className="text-yellow-500 mr-1"
-                        fill="currentColor"
-                      />
-                      <span className="text-sm">{movie.MovieRating}/5</span>
-                    </div>
-                    <div className="mt-3 flex space-x-2">
-                      <button
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent triggering the parent onClick
-                          handleWatchClick(movie, e);
-                        }}
-                      >
-                        Watch
-                      </button>
-                      <button
-                        className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent triggering the parent onClick
-                          handleWriteReview(movie);
-                        }}
-                      >
-                        Review
-                      </button>
-                      <button
-                        className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent triggering the parent onClick
-                          setSelectedMovie(movie);
-                          setShowReviews(true);
-                          fetchMovieReviews(movie._id);
-                        }}
-                      >
-                        View Reviews
-                      </button>
-                    </div>
+                  <div className="mt-3 flex space-x-2">
+                    <button
+                      className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleWriteReview(movie);
+                      }}
+                    >
+                      Review
+                    </button>
+                    <button
+                      className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-md"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMovie(movie);
+                        setShowReviews(true);
+                        fetchMovieReviews(movie._id);
+                      }}
+                    >
+                      View Reviews
+                    </button>
                   </div>
                 </div>
-              ))}
+              </div>
+            ))}
+
             </div>
           </div>
         </div>
@@ -817,20 +813,7 @@ const UserDashboard = () => {
                           <h4 className="font-medium text-gray-900">
                             {review.User[0]?.UserName}
                           </h4>
-                          <div className="flex items-center">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                size={16}
-                                className="text-yellow-500"
-                                fill={
-                                  star <= review.rating
-                                    ? "currentColor"
-                                    : "none"
-                                }
-                              />
-                            ))}
-                          </div>
+                          
                         </div>
                         <p className="text-xs text-gray-500">
                           {new Date(
@@ -869,23 +852,6 @@ const UserDashboard = () => {
                           Dislikes
                         </button>
 
-                        <button className="flex items-center text-gray-600 hover:text-purple-600 text-sm">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                            />
-                          </svg>
-                          Reply
-                        </button>
                       </div>
                     </div>
                   </div>
