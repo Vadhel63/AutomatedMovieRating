@@ -14,7 +14,7 @@ const Header = () => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await fetch("http://localhost:5000/user/profile", {
+        const response = await fetch("https://automatedmovierating.onrender.com/user/profile", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,

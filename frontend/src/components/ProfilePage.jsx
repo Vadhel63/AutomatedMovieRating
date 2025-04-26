@@ -27,7 +27,7 @@ const ProfilePage = () => {
       }
 
       try {
-        const response = await API.get("http://localhost:5000/user/profile", {
+        const response = await API.get("https://automatedmovierating.onrender.com/user/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(response.data.user);

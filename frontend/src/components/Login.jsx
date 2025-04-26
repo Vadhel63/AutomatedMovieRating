@@ -27,7 +27,7 @@ const Login = () => {
 
     try {
       const response = await API.post(
-        "http://localhost:5000/user/login",
+        "https://automatedmovierating.onrender.com/user/login",
         formData
       );
       localStorage.setItem("authToken", response.data.token);

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/Movie"; // Adjust the URL as needed
+const API_URL = "https://automatedmovierating.onrender.com/Movie"; // Adjust the URL as needed
 
 const getAuthToken = () => {
   return localStorage.getItem("authToken");

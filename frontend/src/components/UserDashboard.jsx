@@ -53,7 +53,7 @@ const UserDashboard = () => {
       // }
   
       const response = await fetch(
-        `http://localhost:5000/review/Movie/${movieId}`,
+        `https://automatedmovierating.onrender.com/review/Movie/${movieId}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -115,7 +115,7 @@ const UserDashboard = () => {
 
     const fetchMovies = async () => {
       try {
-        const response = await fetch("http://localhost:5000/Movie/all", {
+        const response = await fetch("https://automatedmovierating.onrender.com/Movie/all", {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
@@ -155,7 +155,7 @@ const UserDashboard = () => {
 
       setIsLoadingHistory(true);
       try {
-        const response = await fetch("http://localhost:5000/user/history", {
+        const response = await fetch("https://automatedmovierating.onrender.com/user/history", {
           headers: {
             Authorization: `Bearer ${authToken}`,
           },
@@ -191,7 +191,7 @@ const UserDashboard = () => {
     // Send request to backend to update history
     if (authToken && user?.user?.Role === "User") {
       try {
-        await fetch("http://localhost:5000/user/history", {
+        await fetch("https://automatedmovierating.onrender.com/user/history", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -233,7 +233,7 @@ const UserDashboard = () => {
   const handleSearch = async (term) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/Movie/search?term=${term}`,
+        `https://automatedmovierating.onrender.com/Movie/search?term=${term}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -256,7 +256,7 @@ const UserDashboard = () => {
     try {
       console.log(movieId);
       const response = await fetch(
-        `http://localhost:5000/review/Movie/${movieId}`,
+        `https://automatedmovierating.onrender.com/review/Movie/${movieId}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -283,7 +283,7 @@ const UserDashboard = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/review", {
+      const response = await fetch("https://automatedmovierating.onrender.com/review", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -331,7 +331,7 @@ const UserDashboard = () => {
       }
 
       const response = await fetch(
-        `http://localhost:5000/review/${reviewId}/react`,
+        `https://automatedmovierating.onrender.com/review/${reviewId}/react`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
